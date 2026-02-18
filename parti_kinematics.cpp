@@ -20,6 +20,22 @@ bool negativeZeroCheck(double time, void (*func)()){
     return true;
 }
 
+struct Vector2D {
+    double x;
+    double y;
+    double angle;
+    double magnitude;
+};
+
+Vector2D createVector(double velocityX, double velocityY){
+    Vector2D vector;
+    vector.x = velocityX;
+    vector.y = velocityY;
+    vector.magnitude = std::sqrt(std::pow(velocityX, 2) + std::pow(velocityY, 2));
+    vector.angle = (std::atan2(velocityY, velocityX)) * 180 / Constants::Pi();
+    return vector;
+}
+
 Equation termCall(std::string name = "position"){
     Equation t("t");
     Equation position(0.0);
@@ -83,11 +99,10 @@ void calculateAverageVelocity () {
         double VeloctiyX = (finalPosX - startPosX) / timeChange;
 
         double VeloctiyY = (finalPosY - startPosY) / timeChange;
-        double VeloctiyVector = std::sqrt(std::pow(VeloctiyX, 2) + std::pow(VeloctiyY, 2));
 
-        double VeloctiyAngle = (std::atan2(VeloctiyY, VeloctiyX)) * 180 / Constants::Pi();
+        Vector2D veloctiyVector = createVector(VeloctiyX, VeloctiyY);
 
-        std::cout << "Velocity is " << VeloctiyVector << " m/s." << "\n" << "At an angle " << VeloctiyAngle << " degrees." << std::endl;
+        std::cout << "Velocity is " << veloctiyVector.magnitude << " m/s." << "\n" << "At an angle " << veloctiyVector.angle << " degrees." << std::endl;
     }
     else if (choice == 'n') return;
     else std::cout << "Invalid choice. Please try again." << std::endl;
@@ -210,11 +225,10 @@ void calculateAverageAcceleration(){
         double VeloctiyX = (finalVelX - startVelX) / timeChange;
 
         double VeloctiyY = (finalVelY - startVelY) / timeChange;
-        double VeloctiyVector = std::sqrt(std::pow(VeloctiyX, 2) + std::pow(VeloctiyY, 2));
 
-        double VeloctiyAngle = (std::atan2(VeloctiyY, VeloctiyX)) * 180 / Constants::Pi();
+        Vector2D velocityVector = createVector(VeloctiyX, VeloctiyY);
 
-        std::cout << "Velocity is " << VeloctiyVector << " m/s2." << "\n" << "At an angle " << VeloctiyAngle << " degrees." << std::endl;
+        std::cout << "Velocity is " << velocityVector.magnitude << " m/s2." << "\n" << "At an angle " << velocityVector.angle << " degrees." << std::endl;
     }
     else if (choice == 'n') return;
     else std::cout << "Invalid choice. Please try again." << std::endl;
