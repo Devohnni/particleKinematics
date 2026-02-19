@@ -8,6 +8,7 @@
 #include <string>
 #include <limits>
 #include <symcalc/symcalc.hpp>
+#include <fstream>
 
 using namespace symcalc;
 
@@ -26,6 +27,55 @@ struct Vector2D {
     double angle;
     double magnitude;
 };
+
+void vectorToCSV (const Vector2D& vector, const std::string filename = "vectorData.csv"){
+    std::ifstream checkFile(filename);
+    bool fileExists = checkFile.good();
+    checkFile.close();
+
+    std::ofstream outFile;
+    outFile.open(filename, std::ios::app);
+
+    if(outFile.is_open()){
+        if(!fileExists){
+            outFile << "X_Component,Y_Component,Magnitude,Angle_Degrees\n";
+        }
+        outFile << vector.x << "," << vector.y << "," << vector.magnitude << "," << vector.angle << "\n";
+        outFile.close();
+    }
+    else {
+        std::cerr << "Unable to open file for writing!"<< std::endl;
+    }
+
+}
+
+void equationToCSV (Equation equation, const std::string filename = "equationData.csv"){
+    Equation t("t");
+
+    std::ofstream outFile;
+    outFile.open(filename);
+
+    double startTime, endTime, timeStep;
+    std::cout << "Enter Start Time (s): ";
+    std::cin >> startTime;
+    std::cout << "Enter End Time (s): ";
+    std::cin >> endTime;
+    std::cout << "Enter Time Step (s): ";
+    std::cin >> timeStep;
+
+    if (outFile.is_open())
+    {
+        outFile << "S_Component,T_Component\n";
+        for (double tComponent = startTime; tComponent <= endTime; tComponent += timeStep){
+            double sComponent = equation.eval({{t, tComponent}});
+            outFile << sComponent << "," << tComponent << "\n";
+        }
+    }
+    else
+    {
+        std::cerr << "Unable to open file for writing!" << std::endl;
+    }
+}
 
 Vector2D createVector(double velocityX, double velocityY){
     Vector2D vector;
@@ -61,9 +111,9 @@ Equation termCall(std::string name = "position"){
     return position;
 }
 
-void calculateAverageVelocity () {
+void calculateAveragevelocity () {
     double finalPos, startPos, finalTime, startTime;
-    std::cout << "\n--- Calclate Average Velocity ---" << std::endl;
+    std::cout << "\n--- Calclate Average velocity ---" << std::endl;
     std::cout << "Enter Start Positon (m) : ";
     std::cin >> startPos;
     std::cout << "Enter Final Positon (m) : ";
@@ -75,12 +125,12 @@ void calculateAverageVelocity () {
 
     double totalTime = (finalTime - startTime);
 
-    if (!negativeZeroCheck(totalTime, calculateAverageVelocity)) return;
+    if (!negativeZeroCheck(totalTime, calculateAveragevelocity)) return;
 
-    double avgVeloctiy = (finalPos - startPos) / totalTime;
+    double avgvelocity = (finalPos - startPos) / totalTime;
 
-    std::cout << "The Average Velocity is " << avgVeloctiy << " m/s." << std::endl;
-    std::cout << "Would you like to calculate the Velocity Vector? (y/n) ";
+    std::cout << "The Average velocity is " << avgvelocity << " m/s." << std::endl;
+    std::cout << "Would you like to calculate the velocity Vector? (y/n) ";
     char choice;
     std::cin >> choice;
     if (choice == 'y'){
@@ -96,22 +146,25 @@ void calculateAverageVelocity () {
         std::cout << "What is the change in time (s) : ";
         std::cin >> timeChange;
 
-        double VeloctiyX = (finalPosX - startPosX) / timeChange;
+        double velocityX = (finalPosX - startPosX) / timeChange;
 
-        double VeloctiyY = (finalPosY - startPosY) / timeChange;
+        double velocityY = (finalPosY - startPosY) / timeChange;
 
-        Vector2D veloctiyVector = createVector(VeloctiyX, VeloctiyY);
+        Vector2D velocityVector = createVector(velocityX, velocityY);
 
-        std::cout << "Velocity is " << veloctiyVector.magnitude << " m/s." << "\n" << "At an angle " << veloctiyVector.angle << " degrees." << std::endl;
+        std::cout << "velocity is " << velocityVector.magnitude << " m/s." << "\n" << "At an angle " << velocityVector.angle << " degrees." << std::endl;
+
+        Vector2D robotvelocity = createVector(velocityX, velocityY);
+        vectorToCSV(robotvelocity);
     }
     else if (choice == 'n') return;
     else std::cout << "Invalid choice. Please try again." << std::endl;
 }
 
-void calculateInstantaneousVelocity () {
+void calculateInstantaneousvelocity () {
     Equation t("t");
 
-    std::cout << "\n--- Calclate Instantaneous Velocity ---" << std::endl;
+    std::cout << "\n--- Calclate Instantaneous velocity ---" << std::endl;
 
     Equation position = termCall();
 
@@ -119,17 +172,20 @@ void calculateInstantaneousVelocity () {
 
     std::cout << "The derivative of the position equation is: " << dsdt << std::endl;
 
+    equationToCSV(dsdt);
+
     double time;
     std::cout << "Enter the time: ";
+    std::cin >> time;
+    
+    if (!negativeZeroCheck(time, calculateInstantaneousvelocity)) return;
 
-    if (!negativeZeroCheck(time, calculateAverageVelocity))return;
+    double instantaneousvelocity = dsdt.eval({{t, time}});
 
-    double instantaneousVelocity = dsdt.eval({{t, time}});
-
-    if (instantaneousVelocity == std::numeric_limits<double>::infinity()){
+    if (instantaneousvelocity == std::numeric_limits<double>::infinity()){
         std::cout << "That is approaching infinity you mong!";
     }
-    else std::cout << "The instantaneous velocity at time " << time << " is: " << instantaneousVelocity << "m/s" <<std::endl;
+    else std::cout << "The instantaneous velocity at time " << time << " is: " << instantaneousvelocity << "m/s" <<std::endl;
 
 }
 
@@ -139,15 +195,23 @@ void calculateInstantaneousAcceleration(){
     
     Equation position = termCall();
 
+    Equation dsdt = position.derivative();
     Equation d2sdfinalTime = position.derivative(2);
 
+    std::cout << "The first derivative of the poisition equation is:" << dsdt << std::endl;
     std::cout << "The second derivative of the position equation is: " << d2sdfinalTime << std::endl;
+
+    equationToCSV(d2sdfinalTime);
 
     double time;
     std::cout << "Enter the time: ";
-    if (!negativeZeroCheck(time, calculateAverageVelocity))return;
+    std::cin >> time;
+    
+    if (!negativeZeroCheck(time, calculateInstantaneousAcceleration)) return;
 
     double instantaneousAcceleration = d2sdfinalTime.eval({{t, time}});
+
+
 
     if (instantaneousAcceleration == std::numeric_limits<double>::infinity()){
         std::cout << "That is approaching infinity you mong!";
@@ -166,7 +230,7 @@ void calculateAverageAcceleration(){
         std::cout << "\n Please enter the Position Equation details:" << std::endl;
         Equation position = termCall();
         Equation velocity = position.derivative();
-        std::cout << "Velocity Equation derived: " << velocity << std::endl;
+        std::cout << "velocity Equation derived: " << velocity << std::endl;
 
         double initialTime, finalTime, runTime;
         std::cout << "Enter Start Time (s): ";
@@ -174,18 +238,18 @@ void calculateAverageAcceleration(){
         std::cout << "Enter Final Time (s): ";
         std::cin >> finalTime;
         runTime = finalTime - initialTime;
-        if (!negativeZeroCheck(runTime, calculateAverageVelocity))return;
+        if (!negativeZeroCheck(runTime, calculateAverageAcceleration))return;
 
-        double initialVelocity = velocity.eval({{t, initialTime}});
-        double finalVelocity = velocity.eval({{t, finalTime}});
+        double initialvelocity = velocity.eval({{t, initialTime}});
+        double finalvelocity = velocity.eval({{t, finalTime}});
 
-        double avgAccel = (finalVelocity - initialVelocity) / (finalTime - initialTime);
+        double avgAccel = (finalvelocity - initialvelocity) / (finalTime - initialTime);
         std::cout << "Average Acceleration is: " << avgAccel << " m/s^2" << std::endl;
         
         return;
     }
     else if (choice == 'y'){
-        std::cout << "\n Please enter the Velocity Equation details:" << std::endl;
+        std::cout << "\n Please enter the velocity Equation details:" << std::endl;
         Equation velocity = termCall("velocity");
 
 
@@ -222,13 +286,15 @@ void calculateAverageAcceleration(){
             return;
         }
 
-        double VeloctiyX = (finalVelX - startVelX) / timeChange;
+        double velocityX = (finalVelX - startVelX) / timeChange;
 
-        double VeloctiyY = (finalVelY - startVelY) / timeChange;
+        double velocityY = (finalVelY - startVelY) / timeChange;
 
-        Vector2D velocityVector = createVector(VeloctiyX, VeloctiyY);
+        Vector2D velocityVector = createVector(velocityX, velocityY);
 
-        std::cout << "Velocity is " << velocityVector.magnitude << " m/s2." << "\n" << "At an angle " << velocityVector.angle << " degrees." << std::endl;
+        std::cout << "velocity is " << velocityVector.magnitude << " m/s2." << "\n" << "At an angle " << velocityVector.angle << " degrees." << std::endl;
+        Vector2D robotvelocity = createVector(velocityX, velocityY);
+        vectorToCSV(robotvelocity);
     }
     else if (choice == 'n') return;
     else std::cout << "Invalid choice. Please try again." << std::endl;
@@ -239,8 +305,8 @@ int main(){
     while (true) {
         std::cout << "\n--- Kinematics Calculator ---" << std::endl;
         std::cout << "What are we calculating today my liege?" << std::endl;
-        std::cout << "1. Calculate Average Velocity" << std::endl;
-        std::cout << "2. Calculate Instantaneous Velocity" << std::endl;
+        std::cout << "1. Calculate Average velocity" << std::endl;
+        std::cout << "2. Calculate Instantaneous velocity" << std::endl;
         std::cout << "3. Calculate Instantaneous Acceleration" << std::endl;
         std::cout << "4. Calculate Average Acceleration" << std::endl;
         std::cout << "5. Exit" << std::endl;
@@ -253,8 +319,8 @@ int main(){
             continue;
         }
 
-        if (choice == 1) calculateAverageVelocity();
-        else if (choice == 2) calculateInstantaneousVelocity();
+        if (choice == 1) calculateAveragevelocity();
+        else if (choice == 2) calculateInstantaneousvelocity();
         else if (choice == 3) calculateInstantaneousAcceleration();
         else if (choice == 4) calculateAverageAcceleration();
         else if (choice == 5) break;
