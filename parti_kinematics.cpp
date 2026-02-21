@@ -9,6 +9,7 @@
 #include <limits>
 #include <symcalc/symcalc.hpp>
 #include <fstream>
+#include <cstdlib>
 
 using namespace symcalc;
 
@@ -65,11 +66,16 @@ void equationToCSV (Equation equation, const std::string filename = "equationDat
 
     if (outFile.is_open())
     {
-        outFile << "S_Component,T_Component\n";
+        outFile << "T_Component, S_Component, V_Component, A_Component\n";
         for (double tComponent = startTime; tComponent <= endTime; tComponent += timeStep){
             double sComponent = equation.eval({{t, tComponent}});
-            outFile << sComponent << "," << tComponent << "\n";
+            double vComponent = equation.derivative().eval({{t, tComponent}});
+            double aComponent = equation.derivative(2).eval({{t, tComponent}});
+            outFile << tComponent << "," << sComponent << "," << vComponent << "," << aComponent << "\n";
         }
+        outFile.close();
+        std::cout << "Launching Python script..." << std::endl;
+        std::system("python3 /Users/devon/C++/partiKinematics/graphing.py");
     }
     else
     {
@@ -97,21 +103,46 @@ Equation termCall(std::string name = "position"){
 
     for (int i = 0; i < terms; i++)
     {
-        double coefficient, power;
-        std::cout << "Enter coefficient for term " << (i + 1) << ": ";
-        if (!(std::cin >> coefficient))
+        int type;
+        std::cout << "Enter term type (sin[1], cos[2], polynomial[3]) for term " << (i + 1) << ": ";
+        std::cin >> type;
+        Equation term(0.0);
+        if (type == 1) {
+            double coefficientOutter, coefficientInner;
+            std::cout << "Enter coefficient (A) for A*sin(B*t): ";
+            std::cin >> coefficientOutter;
+            std::cout << "Enter inner coefficient (B) for A*sin(B*t): ";
+            std::cin >> coefficientInner;
+            term = (Equation(coefficientOutter) * sin(Equation(coefficientInner) * t));
+        } 
+        else if (type == 2) {
+            double coefficientOutter, coefficientInner;
+            std::cout << "Enter coefficient (A) for A*cos(B*t): ";
+            std::cin >> coefficientOutter;
+            std::cout << "Enter inner coefficient (B) for A*cos(B*t): ";
+            std::cin >> coefficientInner;
+            term = (Equation(coefficientOutter) * cos(Equation(coefficientInner) * t));
+        }
+        else if (type == 3) {
+            double coefficient, power;
+            std::cout << "Enter coefficient for term " << (i + 1) << ": ";
+            if (!(std::cin >> coefficient)) return position;
+            std::cout << "Enter power for term " << (i + 1) << ": ";
+            if (!(std::cin >> power)) return position;
+            term = (Equation(coefficient) * t.pow(Equation(power)));
+        }
+        else {
+            std::cout << "Invalid term type. Please try again." << std::endl;
             return position;
-        std::cout << "Enter power for term " << (i + 1) << ": ";
-        if (!(std::cin >> power))
-            return position;
-        position = position + (Equation(coefficient) * t.pow(Equation(power)));
+        }
+        position = position + term;
     }
 
     std::cout << "The " << name << " equation is: " << position << std::endl;
     return position;
 }
 
-void calculateAveragevelocity () {
+void calculateAverageVelocity () {
     double finalPos, startPos, finalTime, startTime;
     std::cout << "\n--- Calclate Average velocity ---" << std::endl;
     std::cout << "Enter Start Positon (m) : ";
@@ -125,7 +156,7 @@ void calculateAveragevelocity () {
 
     double totalTime = (finalTime - startTime);
 
-    if (!negativeZeroCheck(totalTime, calculateAveragevelocity)) return;
+    if (!negativeZeroCheck(totalTime, calculateAverageVelocity)) return;
 
     double avgvelocity = (finalPos - startPos) / totalTime;
 
@@ -161,7 +192,7 @@ void calculateAveragevelocity () {
     else std::cout << "Invalid choice. Please try again." << std::endl;
 }
 
-void calculateInstantaneousvelocity () {
+void calculateInstantaneousVelocity () {
     Equation t("t");
 
     std::cout << "\n--- Calclate Instantaneous velocity ---" << std::endl;
@@ -172,13 +203,13 @@ void calculateInstantaneousvelocity () {
 
     std::cout << "The derivative of the position equation is: " << dsdt << std::endl;
 
-    equationToCSV(dsdt);
+    equationToCSV(position);
 
     double time;
     std::cout << "Enter the time: ";
     std::cin >> time;
     
-    if (!negativeZeroCheck(time, calculateInstantaneousvelocity)) return;
+    if (!negativeZeroCheck(time, calculateInstantaneousVelocity)) return;
 
     double instantaneousvelocity = dsdt.eval({{t, time}});
 
@@ -201,7 +232,7 @@ void calculateInstantaneousAcceleration(){
     std::cout << "The first derivative of the poisition equation is:" << dsdt << std::endl;
     std::cout << "The second derivative of the position equation is: " << d2sdfinalTime << std::endl;
 
-    equationToCSV(d2sdfinalTime);
+    equationToCSV(position);
 
     double time;
     std::cout << "Enter the time: ";
@@ -305,8 +336,8 @@ int main(){
     while (true) {
         std::cout << "\n--- Kinematics Calculator ---" << std::endl;
         std::cout << "What are we calculating today my liege?" << std::endl;
-        std::cout << "1. Calculate Average velocity" << std::endl;
-        std::cout << "2. Calculate Instantaneous velocity" << std::endl;
+        std::cout << "1. Calculate Average Velocity" << std::endl;
+        std::cout << "2. Calculate Instantaneous Velocity" << std::endl;
         std::cout << "3. Calculate Instantaneous Acceleration" << std::endl;
         std::cout << "4. Calculate Average Acceleration" << std::endl;
         std::cout << "5. Exit" << std::endl;
@@ -319,8 +350,8 @@ int main(){
             continue;
         }
 
-        if (choice == 1) calculateAveragevelocity();
-        else if (choice == 2) calculateInstantaneousvelocity();
+        if (choice == 1) calculateAverageVelocity();
+        else if (choice == 2) calculateInstantaneousVelocity();
         else if (choice == 3) calculateInstantaneousAcceleration();
         else if (choice == 4) calculateAverageAcceleration();
         else if (choice == 5) break;
